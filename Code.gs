@@ -14,8 +14,10 @@ const CHUNK = 45000;            // une cellule Sheets accepte 50 000 caractères
 const NAMES = {
   ecom: 'E-commerce', sav: 'SAV', coaching: 'Accompagnement e-com',
   logistique: 'Logistique', 'import': 'Import-export',
-  verts: 'Espaces verts & nettoyage', agence: 'Agence web'
+  verts: 'Espaces verts & nettoyage', agence: 'Agence web',
+  trading: 'Trading', saas: 'SaaS', admin: 'Administratif'
 };
+const TYPES = { ops: 'Opérationnel', com: 'Commercial', strat: 'Stratégie' };
 
 /* ---------- À lancer une fois ---------- */
 function setup() {
@@ -23,7 +25,7 @@ function setup() {
   let token = props.getProperty('TOKEN');
   if (!token) { token = Utilities.getUuid().replace(/-/g, ''); props.setProperty('TOKEN', token); }
   sheet_(SPACES, ['id', 'mis à jour', 'données (ne pas modifier)']);
-  sheet_('Tâches'); sheet_('Agenda');
+  sheet_('Tâches'); sheet_('Agenda'); sheet_('KPI');
   const cal = CalendarApp.getDefaultCalendar().getName(); // déclenche l'autorisation Agenda
   Logger.log('Code secret à coller dans Centr QG : ' + token);
   Logger.log('Agenda relié : ' + cal);
@@ -112,20 +114,28 @@ function save_(id, data) {
 function mirror_() {
   const sp = load_();
   const ST = { todo: 'À faire', doing: 'En cours', done: 'Fait' };
-  const T = [['Activité', 'Tâche', 'Statut', 'Priorité', 'Échéance', 'Durée (min)', 'Mini-tâches', 'Notes']];
+  const T = [['Activité', 'Tâche', 'Type', 'Statut', 'Priorité', 'Échéance', 'Durée prévue (min)', 'Temps réel (min)', 'Mini-tâches', 'Notes']];
+  const K = [['Activité', 'Indicateur', 'Semaine', 'Valeur', 'Unité', 'Objectif']];
   const A = [['Activité', 'Créneau', 'Date', 'Début', 'Durée (min)', 'Dans Google Agenda']];
   Object.keys(NAMES).forEach(function (id) {
     const s = sp[id] || {};
     (s.tasks || []).forEach(function (t) {
-      T.push([NAMES[id], t.title, ST[t.status] || t.status, 'P' + (t.prio || 2), t.due || '', t.dur || '',
+      T.push([NAMES[id], t.title, TYPES[t.type] || '', ST[t.status] || t.status, 'P' + (t.prio || 2), t.due || '', t.dur || '', t.spent ? Math.round(t.spent) : '',
         (t.subs || []).map(function (x) { return (x.done ? '✓ ' : '○ ') + x.t; }).join('\n'), t.note || '']);
     });
     (s.events || []).forEach(function (e) {
       A.push([NAMES[id], e.title, e.date, e.start, e.dur, e.gid ? 'oui' : '']);
     });
+    const kv = s.kv || {};
+    Object.keys(kv).sort().forEach(function (wk) {
+      (s.kpis || []).forEach(function (k) {
+        if (kv[wk][k.id] != null) K.push([NAMES[id], k.name, wk, kv[wk][k.id], k.unit || '', k.target || '']);
+      });
+    });
   });
   write_('Tâches', T);
   write_('Agenda', A);
+  write_('KPI', K);
 }
 function write_(name, rows) {
   const sh = sheet_(name);
