@@ -18,6 +18,7 @@ const NAMES = {
   trading: 'Trading', saas: 'SaaS', admin: 'Administratif'
 };
 const TYPES = { ops: 'Opérationnel', com: 'Commercial', strat: 'Stratégie' };
+const CATS = { site: 'Sites', fourn: 'Fournisseurs', sheet: 'Google Sheets', outil: 'Outils', autre: 'Autres' };
 
 /* ---------- À lancer une fois ---------- */
 function setup() {
@@ -25,7 +26,7 @@ function setup() {
   let token = props.getProperty('TOKEN');
   if (!token) { token = Utilities.getUuid().replace(/-/g, ''); props.setProperty('TOKEN', token); }
   sheet_(SPACES, ['id', 'mis à jour', 'données (ne pas modifier)']);
-  sheet_('Tâches'); sheet_('Agenda'); sheet_('KPI');
+  sheet_('Tâches'); sheet_('Agenda'); sheet_('KPI'); sheet_('Liens');
   const cal = CalendarApp.getDefaultCalendar().getName(); // déclenche l'autorisation Agenda
   Logger.log('Code secret à coller dans Centr QG : ' + token);
   Logger.log('Agenda relié : ' + cal);
@@ -136,6 +137,9 @@ function mirror_() {
   write_('Tâches', T);
   write_('Agenda', A);
   write_('KPI', K);
+  const L = [['Bouton', 'Lien', 'Catégorie', 'Activité']];
+  ((sp.liens || {}).links || []).forEach(function (l) { L.push([l.name, l.url, CATS[l.cat] || l.cat || '', NAMES[l.bz] || '']); });
+  write_('Liens', L);
 }
 function write_(name, rows) {
   const sh = sheet_(name);
